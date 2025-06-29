@@ -57,52 +57,54 @@ public class Enemy : MonoBehaviour
 
 		if (myViewCos <= dot) //視野に入ったら実行
 		{
-			ChangeDir();
-			Move();
+
+			var target = (player_.transform.position - transform.position).normalized;
+
+			var fowerd = transform.forward;
+
+			var limitViewCos = Mathf.Cos(10 * Mathf.Deg2Rad);
+
+			var dir_dot = Vector3.Dot(fowerd, target);
+
+			Matrix4x4 rot = Matrix4x4.identity;
+
+			if (0.99f > dir_dot) //約１より小さかったら
+			{
+				float radian = 1;
+
+				if (limitViewCos <= dir_dot) // 10°以内だと1に近い
+				{
+					radian = Mathf.Acos(dir_dot);
+
+					Debug.Log("<=10");
+				}
+				else
+				{
+					radian = Mathf.Acos(limitViewCos);
+
+					Debug.Log(">10");
+				}
+
+				var cross = Vector3.Cross(fowerd, target);
+
+				radian *= (cross.y / Mathf.Abs(cross.y));
+
+				Matrix4x4 rotM = Matrix4x4.Rotate(Quaternion.Euler(0, Mathf.Rad2Deg * radian, 0));
+
+				rot = rotM;
+			}
+
+
+			Vector3 vec=new Vector3();
+			vec.z = 0.2f;
+			var pos = Matrix4x4.Translate(vec);
+
+
+			worldMatrix_ = worldMatrix_ * (pos * rot);
 		}
 
-	}
-	/// <summary>
-	///	回転
-	/// </summary>
-	void ChangeDir()
-	{
-		var target = (player_.transform.position - transform.position).normalized;
-
-		var fowerd = transform.forward;
-
-		var limitViewCos = Mathf.Cos(10 * Mathf.Deg2Rad);
-
-		var dot = Vector3.Dot(fowerd, target);
-
-		if (0.999f < dot) { return; }
-
-		float radian = 1;
-
-		if (limitViewCos <= dot) // 10°以内だと1に近い
-		{
-			radian = Mathf.Acos(dot);
-
-			Debug.Log("<=10");
-		}
-		else
-		{
-			radian = Mathf.Acos(limitViewCos);
-
-			Debug.Log(">10");
-		}
-
-		var cross = Vector3.Cross(fowerd, target);
-
-		radian *= (cross.y / Mathf.Abs(cross.y));
-
-		transform.rotation *= Quaternion.Euler(0, Mathf.Rad2Deg * radian, 0);
-	}
-
-	void Move()
-	{
-		Vector3 vec = new Vector3();
-		vec.z = 0.2f;
-
+		transform.position = worldMatrix_.GetColumn(3);
+		transform.rotation = worldMatrix_.rotation;
+		transform.localScale = worldMatrix_.lossyScale;
 	}
 }
